@@ -1,0 +1,88 @@
+org: irisfu
+app: travel-doc
+service: TravelDoc
+frameworkVersion: '3'
+
+custom:
+  tableName: 'users-table-${sls:stage}'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource: '*'
+  environment:
+    DYNAMODB_NAMESPACE: ${opt:stage, "dev"}
+
+functions:
+  createUser:
+    handler: src/dynamodb/user.createUser
+    events:
+      - cognitoUserPool:
+          pool: TravelDocUserPool
+          trigger: PostConfirmation
+
+  updateUserProfile:
+    handler: src/dynamodb/user.updateUserProfile
+    events:
+      - httpApi:
+          method: PUT
+          path: /user-profile
+
+  getUserProfile:
+    handler: src/dynamodb/user.getUserProfile
+    events:
+      - httpApi:
+          method: GET
+          path: /user-profile
+        
+
+resources:
+  Resources:
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: user_id
+            AttributeType: S
+          - AttributeName: file_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: user_id
+            KeyType: HASH
+          - AttributeName: file_id
+            KeyType: RANGE  
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+        TableName: "TravelDoc"
+
+    TravelDocUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: "TravelDocUserPool"
+        UsernameAttributes:
+          - email
+        AutoVerifiedAttributes:
+          - email
+    # CognitoUserPoolClient:
+    #   Type: AWS::Cognito::UserPoolClient
+    #   Properties:
+    #     ClientName: "TravelDocClient"
+    #     UserPoolId:
+    #       Ref: CognitoUserPool
+    #     ExplicitAuthFlows:
+    #       - ADMIN_NO_SRP_AUTH
+    #     GenerateSecret: false    
