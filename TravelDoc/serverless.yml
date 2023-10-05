@@ -9,6 +9,8 @@ custom:
 provider:
   name: aws
   runtime: nodejs18.x
+  httpApi:
+    cors: true
   iam:
     role:
       statements:
@@ -37,15 +39,14 @@ functions:
     events:
       - httpApi:
           method: PUT
-          path: /user-profile
+          path: /dev/user-profile
 
   getUserProfile:
     handler: src/dynamodb/user.getUserProfile
     events:
       - httpApi:
           method: GET
-          path: /user-profile
-        
+          path: /dev/user-profile
 
 resources:
   Resources:

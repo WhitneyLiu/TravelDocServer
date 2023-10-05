@@ -1,8 +1,8 @@
 
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb"; 
-import { DynamoDBDocumentClient, DeleteCommand, PutCommand, QueryCommand, UpdateCommand} from "@aws-sdk/lib-dynamodb";
+const { DynamoDBClient } = require ("@aws-sdk/client-dynamodb"); 
+const { DynamoDBDocumentClient, DeleteCommand, PutCommand, QueryCommand, UpdateCommand} = require ("@aws-sdk/lib-dynamodb");
 
-const client0 = new DynamoDBClient({region: "us-west-1"});
+const client0 = new DynamoDBClient({});
 const client = DynamoDBDocumentClient.from(client0);
 
 //Put user record into DynamoDB after user confirmation in Cognito
@@ -40,7 +40,7 @@ const createUser = async (event) => {
 const updateUserProfile = async (event) => {
     const response = {statusCode: 200};
     try{
-        const token = event.params.header.Authorization;
+        const token = event.headers.authorization;
         const parts = token.split('.');
         const encodedPayload = parts[1];
         const decodedPayload = Buffer.from(encodedPayload, 'base64').toString('utf-8');
@@ -99,9 +99,10 @@ const updateUserProfile = async (event) => {
     return response;
 };
 const getUserProfile = async (event) => {
+    console.log(event);
     const response = {statusCode: 200};
     try{
-        const token = event.params.header.Authorization;
+        const token = event.headers.authorization;
         const parts = token.split('.');
         const encodedPayload = parts[1];
         const decodedPayload = Buffer.from(encodedPayload, 'base64').toString('utf-8');
@@ -125,7 +126,7 @@ const getUserProfile = async (event) => {
         console.error(err);
         response.statusCode = 500;
         response.body = JSON.stringify({
-            message: "Failed to retrieve explanations.",
+            message: "Failed to retrieve profile.",
             errorMsg: err.message,
             errorStack: err.stack,
         });
