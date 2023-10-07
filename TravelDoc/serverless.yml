@@ -48,6 +48,13 @@ functions:
           method: GET
           path: /dev/user-profile
 
+  getDropboxUrl:
+    handler: src/services/dropboxSign.generateEmbeddedSignUrl
+    events:
+      - httpApi:
+          method: POST
+          path: /dev/dropbox-sign
+          
 resources:
   Resources:
     UsersTable:

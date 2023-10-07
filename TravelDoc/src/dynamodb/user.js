@@ -15,7 +15,7 @@ const createUser = async (event) => {
             TableName:'TravelDoc',
             Item: {
             user_id: userAttributes.sub,
-            file_id: 'user-registration',
+            file_id: 'user-profile',
             user_email: userAttributes.email,
             createdAt: time,
             }
@@ -40,52 +40,38 @@ const createUser = async (event) => {
 const updateUserProfile = async (event) => {
     const response = {statusCode: 200};
     try{
+        const body = JSON.parse(event.body);
+        const attributeName = Object.keys(body)[0];
+        const attributeValue = Object.values(body)[0];
         const token = event.headers.authorization;
         const parts = token.split('.');
         const encodedPayload = parts[1];
         const decodedPayload = Buffer.from(encodedPayload, 'base64').toString('utf-8');
         const jsonPayload = JSON.parse(decodedPayload);
         const userId = jsonPayload.username;
+        let exp = {
+            UpdateExpression: 'SET',
+            ExpressionAttributeNames: {},
+            ExpressionAttributeValues: {}
+        };
+        exp.UpdateExpression += ` #${attributeName} = :${attributeName}`;
+        exp.ExpressionAttributeNames[`#${attributeName}`] = attributeName;
+        exp.ExpressionAttributeValues[`:${attributeName}`] = attributeValue;
         const input = {
-            ExpressionAttributeNames: {
-            "#attr": attribute,
-            },
-            ExpressionAttributeValues: {
-            ":at": json[attribute]
-            },
             Key: {
-            user_id: userId,
-            file_id: 'user-profile'
+                user_id: userId,
+                file_id: 'user-profile'
             },
-            ReturnValues: "ALL_NEW",
+            ReturnValues: "UPDATED_NEW",
             TableName: "TravelDoc",
-            UpdateExpression: "SET #attr = :at"
+            ...exp
         };
         const command = new UpdateCommand(input);
-        // const command = new PutCommand({
-        //   TableName:'TravelDoc',
-        //   Item: {
-        //     user_id:userId,
-        //     file_id: 'user-profile',
-        //     [attribute]: json[attribute],
-        //     // first_name: json.firstName,
-        //     // last_name: json.lastName,
-        //     // occupation: json.occupation,
-        //     // phone_number: json.phoneNumber,
-        //     // emergency_contact: json.emergencyContact,
-        //     // user_email: json.email,
-        //     // country:  json.country,
-        //     // street_address: json.streetAddress,
-        //     // city:  json.city,
-        //     // province:  json.state,
-        //     // zip: json.zip,
-        //     // birthday: json.birthday
-        //   }
-        // });
         const updateResult = await client.send(command);
         response.body = JSON.stringify({
             message: "successfully updated user profile.",
             updateResult,
+            input
         });
     }catch (err) {
         console.error(err);
@@ -93,13 +79,12 @@ const updateUserProfile = async (event) => {
         response.body =JSON.stringify({
             message: "failed to update user profile.",
             errorMsg: err.message,
-            errorStack: err.stack,
+            errorStack: err.stack,  
         })
     };
     return response;
 };
 const getUserProfile = async (event) => {
-    console.log(event);
     const response = {statusCode: 200};
     try{
         const token = event.headers.authorization;
