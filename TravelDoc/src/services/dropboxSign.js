@@ -50,7 +50,6 @@ const generateEmbeddedSignUrl = async(event) => {
             message: "failed to create request.",
             errorMsg: err.message,
             errorStack: err.stack,
-            endpointCreateRequest
         })
     }
     return response;   
