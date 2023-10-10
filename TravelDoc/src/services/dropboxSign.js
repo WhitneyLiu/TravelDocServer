@@ -1,47 +1,50 @@
-const dotenv = require('dotenv');
-const path = require('path');
-dotenv.config({ path: path.join(__dirname, '../../.env') });
-const axios = require('axios');
-const endpointCreateRequest = "https://" + process.env.DROPBOX_API_KEY + ":@api.hellosign.com/v3/signature_request/create_embedded";
-
+const DropboxSign = require('@dropbox/sign');
+const fs = require("fs");
+const path = require("path");
+const signatureRequestApi = new DropboxSign.SignatureRequestApi();
+signatureRequestApi.username = "75f12ce35d222353893acdca6e673441da448f3eae646032c212e9a7f57b99cd";
+const embeddedApi = new DropboxSign.EmbeddedApi();
+embeddedApi.username = "75f12ce35d222353893acdca6e673441da448f3eae646032c212e9a7f57b99cd";
 const generateEmbeddedSignUrl = async(event) => {
     const signerData = JSON.parse(event.body);
     const response = {statusCode: 200};
     try{
         const signer = {
-            email_address: signerData.email,
+            emailAddress: signerData.email,
             name: signerData.name,
             order: 0,
         };
           
-        const signing_options = {
+          
+        const signingOptions = {
             draw: true,
             type: true,
             upload: true,
             phone: false,
             defaultType: "draw",
         };
-          
         const data = {
-            client_id: process.env.CLIENT_ID,
+            clientId: "963b73b69f7f935260e11119fc3329c9",
             title: "TravelDoc Sign",
             subject: "",
             message: "Please sign this document to try out the App",
-            signers: [ signer ],
-            cc_email_addresses: ["lawyer1@dropboxsign.com"],
-            file_urls: ["https://www.dropbox.com/s/ad9qnhbrjjn64tu/mutual-NDA-example.pdf?dl=1"],
-            signing_options,
-            test_mode: true,
-        };
-        const createRequestRes = await axios.post(endpointCreateRequest,JSON.stringify(data));
-        const temp = JSON.stringify(createRequestRes);
-        const obj = JSON.parse(temp);
-        const signatureId = obj.signature_request.signatures[0].signature_id;
-        const endpointSignUrl = "https://" + process.env.DROPBOX_API_KEY + ":@api.hellosign.com/v3/embedded/sign_url/" + signatureId;
-        const result = axios.get(endpointSignUrl);
+            signers: [ signer],
+            ccEmailAddresses: [
+              "lawyer1@dropboxsign.com"
+            ],
+            files: [fs.createReadStream(path.join(__dirname, "FlightBookingContract-20231003-142718.pdf"))],
+            signingOptions,
+            testMode: true,
+        };  
+        
+        const createEmbeddedResult = await signatureRequestApi.signatureRequestCreateEmbedded(data);
+        const signatureId = createEmbeddedResult.body.signatureRequest.signatures[0].signatureId;
+        const result = await embeddedApi.embeddedSignUrl(signatureId);
+        const signUrl = result.body.embedded.signUrl;
+        
         response.body = JSON.stringify({
             message: "successfully crete request.",
-            result,
+            signUrl
         });
     }catch(err){
         console.error(err);
@@ -55,6 +58,6 @@ const generateEmbeddedSignUrl = async(event) => {
     return response;   
 }
 
-export default {
+module.exports = {
   generateEmbeddedSignUrl,
 };
